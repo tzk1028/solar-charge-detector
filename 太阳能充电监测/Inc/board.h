@@ -28,7 +28,7 @@ typedef enum {
     OLED_FIELD_COUNT
 } OledField;
 
-typedef enum { OLED_NUMBER, OLED_INVALID, OLED_OVER_RANGE, OLED_CLOSED, OLED_REQUEST } OledValueState;
+typedef enum { OLED_NUMBER, OLED_INVALID, OLED_OVER_RANGE, OLED_CLOSED, OLED_REQUEST, OLED_NUMBER_ALERT } OledValueState;
 
 typedef struct {
     const char *text;

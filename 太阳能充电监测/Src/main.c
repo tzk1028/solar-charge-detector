@@ -20,8 +20,12 @@ static bool voltage_in_range(void) {
     return g_measurement.adc_vin < 4000u;
 }
 
+static bool current_adc_in_range(void) {
+    return g_measurement.adc_current < 4000u;
+}
+
 static bool current_in_range(void) {
-    return g_measurement.adc_current < 4000u &&
+    return current_adc_in_range() &&
            g_measurement.current_ma <= CURRENT_VALID_MAX_MA;
 }
 
@@ -66,9 +70,32 @@ static void render(void) {
     display_line(10,g_measurement.adc_ok&&g_measurement.range_ok?"CHECK HW TEST":"CHECK ADC");
 }
 #else
+/* 首轮可用数据建立状态。无效或接近 ADC 满量程的轮次
+   中断确认，保留上次已确认状态。 */
+static bool current_display_over_range(bool valid, bool over_range) {
+    static bool initialized;
+    static bool confirmed;
+    static uint8_t pending;
+
+    if (!valid) {
+        pending = 0u;
+    } else if (!initialized) {
+        initialized = true;
+        confirmed = over_range;
+    } else if (over_range == confirmed) {
+        pending = 0u;
+    } else if (++pending == 3u) {
+        confirmed = over_range;
+        pending = 0u;
+    }
+    return confirmed;
+}
+
 /* 左列显示板端输入，右列显示环境数据和充电开关状态。 */
 static void render(void) {
     char voltage[12], current[12], power[12], temperature[12], humidity[12];
+    bool can_show_current = g_measurement.adc_ok && current_adc_in_range();
+    bool current_alert = current_display_over_range(can_show_current, !current_in_range());
     OledValue cells[OLED_FIELD_COUNT] = {
         [OLED_VOLTAGE] = {voltage, OLED_INVALID},
         [OLED_CURRENT] = {current, OLED_INVALID},
@@ -87,7 +114,11 @@ static void render(void) {
         snprintf(power, sizeof power, "%lu.%02luW",
                  (unsigned long)(power_cw / 100u), (unsigned long)(power_cw % 100u));
         cells[OLED_VOLTAGE].state = voltage_in_range() ? OLED_NUMBER : OLED_OVER_RANGE;
-        cells[OLED_CURRENT].state = current_in_range() ? OLED_NUMBER : OLED_OVER_RANGE;
+        if (can_show_current) {
+            cells[OLED_CURRENT].state = current_alert ? OLED_NUMBER_ALERT : OLED_NUMBER;
+        } else {
+            cells[OLED_CURRENT].state = OLED_OVER_RANGE;
+        }
         if (g_measurement.range_ok) {
             cells[OLED_POWER].state = OLED_NUMBER;
         }

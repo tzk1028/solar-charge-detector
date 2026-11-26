@@ -215,8 +215,15 @@ void display_dashboard(const OledValue values[OLED_FIELD_COUNT]) {
             unsigned start = left + 27u;
             oled_word(row, left + 1u, labels[field][0], labels[field][1]);
             switch (values[field].state) {
+                case OLED_NUMBER_ALERT:
                 case OLED_NUMBER:
-                    oled_number(row, start, left + 63u, values[field].text);
+                    oled_number(row, start, left + (values[field].state == OLED_NUMBER_ALERT ? 61u : 63u),
+                                values[field].text);
+                    if (values[field].state == OLED_NUMBER_ALERT) {
+                        /* 数字照常绘制，在格子右侧另画一个感叹号。 */
+                        oled_column(row, left + 61u, 0x19F8u);
+                        oled_column(row, left + 62u, 0x19F8u);
+                    }
                     break;
                 case OLED_OVER_RANGE:
                     oled_word(row, start, HZ_CHAO, HZ_XIAN);
