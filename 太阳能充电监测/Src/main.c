@@ -78,13 +78,17 @@ static bool current_display_over_range(bool valid, bool over_range) {
     static uint8_t pending;
 
     if (!valid) {
+        /* 这次读数无效，清零连续计数，保留上次确认的状态。 */
         pending = 0u;
     } else if (!initialized) {
+        /* 上电后的第一笔有效读数直接决定初始状态。 */
         initialized = true;
         confirmed = over_range;
     } else if (over_range == confirmed) {
+        /* 读数回到当前状态，之前累计的次数作废。 */
         pending = 0u;
     } else if (++pending == 3u) {
+        /* 上一行先把计数加 1。满 3 次才切换状态。 */
         confirmed = over_range;
         pending = 0u;
     }
