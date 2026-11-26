@@ -4,6 +4,7 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include "config.h"
+/* 头文件把各 .c 文件对外提供的函数放在一起。例如 main.c 通过这里的声明调用 board.c 中定义的 adc_read()。 */
 extern volatile uint32_t system_ms;
 void SysTick_Handler(void);
 void board_init(void);
@@ -30,6 +31,7 @@ typedef enum {
 
 typedef enum { OLED_NUMBER, OLED_INVALID, OLED_OVER_RANGE, OLED_CLOSED, OLED_REQUEST } OledValueState;
 
+/* 每个 OLED 格有一段可选的数字文字和一个状态。状态字样由显示驱动绘制。 */
 typedef struct {
     const char *text;
     uint32_t state; /* OledValueState，固定字宽与指针对齐。 */

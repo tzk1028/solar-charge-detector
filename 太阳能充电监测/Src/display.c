@@ -23,6 +23,7 @@ static uint8_t column(char c,unsigned x) {
     if(c=='%') { const uint8_t p[5]={0x63,0x13,8,0x64,0x63}; return p[x]; }
     return 0;
 }
+/* 上面的字形表保存数字和英文字母的点阵。这里先保留 TFT 的备用显示代码，当前工程会编译下面的 OLED 分支。 */
 #if DISPLAY_TFT
 static void spi(uint8_t v) {
     for(unsigned i=0;i<8u;++i) {
@@ -101,6 +102,7 @@ static const uint8_t oled_title[2][129] = {
     },
 };
 
+/* OLED 把屏幕分成 8 页，每页高 8 个像素。先发命令选页、把列位置移到开头，再发一页图像数据。 */
 static bool oled_page(unsigned page, const uint8_t data[129]) {
     const uint8_t address[] = {0x00, (uint8_t)(0xB0u + page), 0x00, 0x10};
 
@@ -110,6 +112,7 @@ static bool oled_page(unsigned page, const uint8_t data[129]) {
     return i2c_write(OLED_ADDRESS, data, 129u);
 }
 
+/* 切换到屏幕的 I2C 引脚。温湿度传感器有自己的引脚，处理完传感器再画屏时要切回来。 */
 static void oled_bus(void) {
     i2c_init(GPIOA, 1, GPIOA, 2);
 }
@@ -121,6 +124,7 @@ void display_init(void) {
         0x20, 0x02, 0xA1, 0xC8, 0xDA, 0x12, 0x81, 0x7F,
         0xD9, 0xF1, 0xDB, 0x30, 0xA4, 0xA6, 0x8D, 0x14
     };
+    /* 0x40 是 OLED 的数据标记，后面 128 个字节各写一列。初始化时顶端两页放标题，其余页先清空。 */
     const uint8_t blank[129] = {0x40};
     const uint8_t on[] = {0x00, 0xAF};
 
@@ -141,11 +145,13 @@ void display_init(void) {
 /* 16行高的缓冲分两页。每页第0字节是 I2C 数据标识。 */
 typedef uint8_t OledRow[2][129];
 
+/* 把一列 16 像素拆成上、下两组各 8 位。两个数组的第 0 个字节都留给 I2C 数据标记。 */
 static void oled_column(OledRow row, unsigned x, uint16_t pixels) {
     row[0][x + 1u] = (uint8_t)pixels;
     row[1][x + 1u] = (uint8_t)(pixels >> 8);
 }
 
+/* 每个汉字占 12 列。从字形表逐列取像素，第二个字紧跟在第一个右边。 */
 static void oled_word(OledRow row, unsigned x, Hanzi first, Hanzi second) {
     for (unsigned col = 0; col < 12u; ++col) {
         oled_column(row, x + col, hanzi[first][col]);
@@ -161,6 +167,7 @@ static uint8_t number_column(char c, unsigned x) {
     return column(c, x);
 }
 
+/* 把字符串逐字符转为点阵，数字字形在竖直方向放大。下一个字符超出格子边界时停止绘制。 */
 static void oled_number(OledRow row, unsigned x, unsigned limit, const char *text) {
     static const uint8_t degree[] = {0x06, 0x09, 0x06};
     for (; *text != '\0'; ++text) {
@@ -195,6 +202,7 @@ static void oled_number(OledRow row, unsigned x, unsigned limit, const char *tex
     }
 }
 
+/* 数据区有 3 行、2 列，每行占 2 页。主程序传来每格的状态，这里决定画数字还是状态词。 */
 void display_dashboard(const OledValue values[OLED_FIELD_COUNT]) {
     static const Hanzi labels[OLED_FIELD_COUNT][2] = {
         [OLED_VOLTAGE] = {HZ_DIAN, HZ_YA},
@@ -232,6 +240,7 @@ void display_dashboard(const OledValue values[OLED_FIELD_COUNT]) {
                     break;
             }
         }
+        /* 从第 2 页开始写数据区，把第 0、1 页的标题留在屏幕上。 */
         unsigned page = 2u + line * 2u;
         if (!oled_page(page, row[0]) || !oled_page(page + 1u, row[1])) {
             return;

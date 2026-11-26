@@ -10,10 +10,12 @@
 #define TFT_INVERT 1
 #define BUZZER_ENABLE 0 /* 默认静音。OLED 仍显示故障提示。 */
 #define CHARGE_ENABLE 0 /* ISET/按键网络与电池规格核实后才允许改成1 */
+/* 采样电阻以毫欧填写，100 毫欧就是 0.1 欧。放大倍数用于把 ADC 看到的电压换算回采样电阻两端的电压。 */
 #define SHUNT_MOHM 100u
 #define CURRENT_GAIN 50u
 #define CURRENT_ZERO_MV 0u /* 仅在测量链路有效后，依据零电流实测调整 */
 #define CURRENT_VALID_MAX_MA 630u /* 临时软件提示阈值，不是硬件限流 */
+/* 输入分压换算使用整数比例。这里 2/1 表示把引脚处的测量电压乘 2，恢复为板端输入电压。 */
 #define VOLTAGE_DIV_NUM 2u
 #define VOLTAGE_DIV_DEN 1u
 #endif
